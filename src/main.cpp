@@ -4,14 +4,14 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // left motor group
 pros::MotorGroup left_motor_group({-1, 2, -3}, pros::MotorGears::blue);
 // right motor group
-pros::MotorGroup right_motor_group({4, -5, 6}, pros::MotorGears::green);
+pros::MotorGroup right_motor_group({4, -5, 6}, pros::MotorGears::blue);
 
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
                               &right_motor_group, // right motor group
                               10, // 10 inch track width
                               lemlib::Omniwheel::NEW_4, // using new 4" omnis
-                              600, // drivetrain rpm is 360
+                              600, // drivetrain rpm is 600
                               2 // horizontal drift is 2 (for now)
 );
 
@@ -90,6 +90,8 @@ void initialize() {
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
+        // print measurements from the rotation sensor
+            pros::lcd::print(1, "Rotation Sensor: %i", horizontal_encoder.get_position());
             // delay to save resources
             pros::delay(20);
         }
@@ -127,6 +129,7 @@ void competition_initialize() {}
  */
 void autonomous() 
 {
+    chassis.setPose(lemlib::Pose(-50, -40, 90));
     chassis.moveToPoint(10, 10, 4000);
 }
 
