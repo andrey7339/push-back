@@ -3,3 +3,5 @@
 Bot by: Andrey Litvin, Luke Green, Rylan Parker
 
 Code by: Andrey Litvin
+
+if you copy my auto u gay
