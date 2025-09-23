@@ -14,7 +14,8 @@ lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
                               600, // drivetrain rpm is 600
                               2 // horizontal drift is 2 (for now)
 );
-
+//optical
+pros::Optical optical(7);
 // imu
 pros::Imu imu(10);
 // horizontal tracking wheel encoder
@@ -87,11 +88,12 @@ void initialize() {
     pros::Task screen_task([&]() {
         while (true) {
             // print robot location to the brain screen
+            pros::lcd::print(4, "Optical Hue: %f", optical.get_hue()); // x
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
         // print measurements from the rotation sensor
-            pros::lcd::print(1, "Rotation Sensor: %i", horizontal_encoder.get_position());
+            pros::lcd::print(3, "Rotation Sensor: %i", horizontal_encoder.get_position());
             // delay to save resources
             pros::delay(20);
         }

@@ -5,7 +5,8 @@
       "includePath": [
         "${workspaceFolder}/**",
         "/Users/andrey/Documents/pls work/include",
-        "/Users/andrey/Documents/push-back/include"
+        "/Users/andrey/Documents/push-back/include",
+        "/Users/andrey/Documents/GitHub/push-back/include"
       ],
       "defines": [
         "_DEBUG",
@@ -21,7 +22,7 @@
       ],
       "browse": {
         "path": [
-          "/Users/andrey/Documents/push-back"
+          "/Users/andrey/Documents/GitHub/push-back"
         ],
         "limitSymbolsToIncludedHeaders": true,
         "databaseFilename": ""

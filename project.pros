@@ -298,7 +298,9 @@
       }
     },
     "upload_options": {
-      "icon": "X"
+      "icon": "X",
+      "after": "screen",
+      "description": "6408T"
     },
     "use_early_access": false
   }
