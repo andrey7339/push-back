@@ -1,5 +1,6 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
+#include <cstdio>
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // left motor group
 pros::MotorGroup left_motor_group({-1, 2, -3}, pros::MotorGears::blue);
@@ -153,7 +154,8 @@ void opcontrol() {
         // get left y and right x positions
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-
+        controller.print(0, 0, "controller text");
+        //printf(right_motor_group.get_efficiency_all());
         // move the robot
         chassis.arcade(leftY, rightX);
 
