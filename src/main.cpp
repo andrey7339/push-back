@@ -1,6 +1,7 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include <cstdio>
+
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // left motor group
 pros::MotorGroup left_motor_group({-1, 2, -3}, pros::MotorGears::blue);
@@ -158,6 +159,11 @@ void opcontrol() {
         //printf(right_motor_group.get_efficiency_all());
         // move the robot
         chassis.arcade(leftY, rightX);
+
+        //std::cout << "Output" << std::endl;
+        
+        
+
 
         // delay to save resources
         pros::delay(25);
