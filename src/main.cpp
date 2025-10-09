@@ -148,6 +148,7 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
+ASSET(example_txt);
 void autonomous() 
 {
     chassis.setPose(lemlib::Pose(-50, -40, 90));
