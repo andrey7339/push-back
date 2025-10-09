@@ -1,12 +1,13 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
+#include "pros/adi.hpp"
 #include <cstdio>
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // left motor group
-pros::MotorGroup left_motor_group({-1, 2, -3}, pros::MotorGears::blue);
+pros::MotorGroup left_motor_group({1, 2, -3}, pros::MotorGears::blue);
 // right motor group
-pros::MotorGroup right_motor_group({4, -5, 6}, pros::MotorGears::blue);
+pros::MotorGroup right_motor_group({-4, -5, 6}, pros::MotorGears::blue);
 
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
@@ -21,7 +22,7 @@ pros::Optical optical(7);
 // imu
 pros::Imu imu(10);
 // horizontal tracking wheel encoder
-pros::Rotation horizontal_encoder(20);
+pros::adi::Encoder horizontal_encoder('A', 'B', false);
 // vertical tracking wheel encoder
 pros::adi::Encoder vertical_encoder('C', 'D', true);
 // horizontal tracking wheel
@@ -81,12 +82,21 @@ sensors,
 &throttle_curve, 
 &steer_curve
 );
+//debug task to print alot of info that we are curious about.
+void debug() {
+    while(true){
+        std::cout << "Battery level:" << controller.get_battery_level()  << std::endl;
+
+        pros::delay(1000);
+    }
+}
 
 // initialize function. Runs on program startup
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
     // print position to brain screen
+    pros::Task debug_task(debug);
     pros::Task screen_task([&]() {
         while (true) {
             // print robot location to the brain screen
@@ -95,9 +105,9 @@ void initialize() {
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
         // print measurements from the rotation sensor
-            pros::lcd::print(3, "Rotation Sensor: %i", horizontal_encoder.get_position());
+            pros::lcd::print(3, "Rotation Sensor: %f", imu.get_rotation()); // heading
             // delay to save resources
-            pros::delay(20);
+            pros::delay(100);
         }
     });
 }
@@ -153,9 +163,12 @@ void autonomous()
 void opcontrol() {
 	while (true) {
         // get left y and right x positions
+        left_motor_group.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+        right_motor_group.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        controller.print(0, 0, "controller text");
+        controller.set_text(0,0, std::to_string(leftY));
+        controller.set_text(0,1, std::to_string(rightX));
         //printf(right_motor_group.get_efficiency_all());
         // move the robot
         chassis.arcade(leftY, rightX);
