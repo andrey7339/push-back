@@ -1,24 +1,25 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "pros/adi.hpp"
+#include "pros/misc.h"
 #include <cstdio>
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // left motor group
 pros::MotorGroup left_motor_group({1, 2, -3}, pros::MotorGears::blue);
 // right motor group
-pros::MotorGroup right_motor_group({-4, -5, 6}, pros::MotorGears::blue);
+pros::MotorGroup right_motor_group({-6, -7, 8}, pros::MotorGears::blue);
 
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
                               &right_motor_group, // right motor group
-                              10, // 10 inch track width
+                              13, // 10 inch track width
                               lemlib::Omniwheel::NEW_4, // using new 4" omnis
-                              600, // drivetrain rpm is 600
+                              400, // drivetrain rpm is 600
                               2 // horizontal drift is 2 (for now)
 );
 //optical
-pros::Optical optical(7);
+pros::Optical optical(9);
 // imu
 pros::Imu imu(10);
 // horizontal tracking wheel encoder
@@ -86,6 +87,8 @@ sensors,
 void debug() {
     while(true){
         std::cout << "Battery level:" << controller.get_battery_level()  << std::endl;
+        std::cout << "CONTROLLER LEFT Y:" << controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)  << std::endl;
+        std::cout << "button test" << controller.get_digital(pros::E_CONTROLLER_DIGITAL_A) << std::endl;
 
         pros::delay(1000);
     }
@@ -106,6 +109,10 @@ void initialize() {
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
         // print measurements from the rotation sensor
             pros::lcd::print(3, "Rotation Sensor: %f", imu.get_rotation()); // heading
+            int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+            int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+            controller.set_text(0,0, std::to_string(leftY));
+            
             // delay to save resources
             pros::delay(100);
         }
@@ -153,7 +160,7 @@ void autonomous()
  * the Field Management System or the VEX Competition Switch in the operator
  * control mode.
  *
- * If no competition control is connected, this function will run immediately
+ * If no competition control is connected, this function will run immediatelyoller.set_text(0,1, std::to_string(rightX));
  * following initialize().
  *
  * If the robot is disabled or communications is lost, the
@@ -167,8 +174,7 @@ void opcontrol() {
         right_motor_group.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        controller.set_text(0,0, std::to_string(leftY));
-        controller.set_text(0,1, std::to_string(rightX));
+        
         //printf(right_motor_group.get_efficiency_all());
         // move the robot
         chassis.arcade(leftY, rightX);
