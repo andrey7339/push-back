@@ -1,32 +1,39 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
+#include "pros/abstract_motor.hpp"
 #include "pros/adi.hpp"
 #include "pros/misc.h"
-#include "pros/rotation.hpp"
+#include "pros/motor_group.hpp"
+#include "pros/motors.h"
 #include <cstdio>
-
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // left motor group
-pros::MotorGroup left_motor_group({1, 2, -11}, pros::MotorGears::blue);
+pros::MotorGroup left_motor_group({-1, 2, -3}, pros::MotorGears::blue);
 // right motor group
-pros::MotorGroup right_motor_group({-6, -7, 8}, pros::MotorGears::blue);
+pros::MotorGroup right_motor_group({4, -5, 6}, pros::MotorGears::blue);
 
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
                               &right_motor_group, // right motor group
-                              13, // 10 inch track width
+                              10, // 10 inch track width
                               lemlib::Omniwheel::NEW_4, // using new 4" omnis
-                              400, // drivetrain rpm is 600
+                              600, // drivetrain rpm is 600
                               2 // horizontal drift is 2 (for now)
 );
+pros::adi::DigitalOut open_roof('A');
+pros::adi::DigitalOut close_roof('B');
+pros::Motor sorting_motor(8, pros::v5::MotorGears::blue);
+// sorting motor
+pros::Motor intake_motor(9, pros::v5::MotorGears::blue);
+// intake motor
 //optical
-pros::Optical optical(9);
+pros::Optical optical(7);
 // imu
 pros::Imu imu(10);
 // horizontal tracking wheel encoder
-pros::Rotation horizontal_encoder(14);
+pros::Rotation horizontal_encoder(20);
 // vertical tracking wheel encoder
-pros::Rotation vertical_encoder(15);
+pros::adi::Encoder vertical_encoder('C', 'D', true);
 // horizontal tracking wheel
 lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, lemlib::Omniwheel::NEW_275, -5.75);
 // vertical tracking wheel
@@ -55,12 +62,12 @@ lemlib::ControllerSettings lateral_controller(10, // proportional gain (kP)
 // angular PID controller
 lemlib::ControllerSettings angular_controller(2, // proportional gain (kP)
                                               0, // integral gain (kI)
-                                              80, // derivative gain (kD)
-                                              0, // anti windup
-                                              0, // small error range, in degrees
-                                              0, // small error range timeout, in milliseconds
-                                              0, // large error range, in degrees
-                                              0, // large error range timeout, in milliseconds
+                                              10, // derivative gain (kD)
+                                              3, // anti windup
+                                              1, // small error range, in degrees
+                                              100, // small error range timeout, in milliseconds
+                                              3, // large error range, in degrees
+                                              500, // large error range timeout, in milliseconds
                                               0 // maximum acceleration (slew)
 );
 
@@ -84,23 +91,12 @@ sensors,
 &throttle_curve, 
 &steer_curve
 );
-//debug task to print alot of info that we are curious about.
-void debug() {
-    while(true){
-        std::cout << "Battery level:" << controller.get_battery_level()  << std::endl;
-        std::cout << "CONTROLLER LEFT Y:" << controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)  << std::endl;
-        std::cout << "button test" << controller.get_digital(pros::E_CONTROLLER_DIGITAL_A) << std::endl;
-
-        pros::delay(1000);
-    }
-}
 
 // initialize function. Runs on program startup
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
     // print position to brain screen
-    pros::Task debug_task(debug);
     pros::Task screen_task([&]() {
         while (true) {
             // print robot location to the brain screen
@@ -109,15 +105,9 @@ void initialize() {
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
         // print measurements from the rotation sensor
-            pros::lcd::print(3, "IMU Sensor: %f", imu.get_rotation()); // heading
-            pros::lcd::print(5, "Vertical Rotation: %i", vertical_encoder.get_position());
-            pros::lcd::print(6, "Horizontal Rotation: %i", horizontal_encoder.get_position());
-            int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-            int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-            controller.set_text(0,0, std::to_string(leftY));
-            
+            pros::lcd::print(3, "Rotation Sensor: %i", optical.get_hue());
             // delay to save resources
-            pros::delay(100);
+            pros::delay(20);
         }
     });
 }
@@ -151,12 +141,10 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-ASSET(path_jerrio_txt);
 void autonomous() 
 {
-    chassis.setPose(0, 0, 0);
-    chassis.turnToHeading(90, 100000);
-
+    chassis.setPose(lemlib::Pose(-50, -40, 90));
+    chassis.moveToPoint(10, 10, 4000);
 }
 
 /**
@@ -165,7 +153,7 @@ void autonomous()
  * the Field Management System or the VEX Competition Switch in the operator
  * control mode.
  *
- * If no competition control is connected, this function will run immediatelyoller.set_text(0,1, std::to_string(rightX));
+ * If no competition control is connected, this function will run immediately
  * following initialize().
  *
  * If the robot is disabled or communications is lost, the
@@ -175,20 +163,36 @@ void autonomous()
 void opcontrol() {
 	while (true) {
         // get left y and right x positions
-        left_motor_group.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
-        right_motor_group.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
         
-        //printf(right_motor_group.get_efficiency_all());
         // move the robot
-        chassis.arcade(leftY, -rightX);
-
-        //std::cout << "Output" << std::endl;
+        chassis.arcade(leftY, rightX);
         
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+            intake_motor.move(127);
+                if (optical.get_hue() > 80 && optical.get_hue() < 220) {
+                    controller.clear();
+                    controller.print(0, 0, "blue");
+                    sorting_motor.move(127);
+                }
+                else {
+                    controller.clear();
+                    controller.print(0, 0, "%f", optical.get_hue());
+                    controller.rumble("...");
+                    sorting_motor.move(-127);
+                }
+        } else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+            intake_motor.move(-127);
+        } else {
+            intake_motor.move(0);
+            sorting_motor.move(0);
+        }   
         
 
-
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+            intake_motor.move(-127);
+        }
         // delay to save resources
         pros::delay(25);
     }
