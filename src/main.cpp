@@ -5,12 +5,13 @@
 #include "pros/misc.h"
 #include "pros/motor_group.hpp"
 #include "pros/motors.h"
+#include "pros/motors.hpp"
 #include <cstdio>
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // left motor group
-pros::MotorGroup left_motor_group({-1, 2, -3}, pros::MotorGears::blue);
+pros::MotorGroup left_motor_group({1, -2, 3}, pros::MotorGears::blue);
 // right motor group
-pros::MotorGroup right_motor_group({4, -5, 6}, pros::MotorGears::blue);
+pros::MotorGroup right_motor_group({-6, 7, -8}, pros::MotorGears::blue);
 
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
@@ -22,18 +23,19 @@ lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
 );
 pros::adi::DigitalOut open_roof('A');
 pros::adi::DigitalOut close_roof('B');
-pros::Motor sorting_motor(8, pros::v5::MotorGears::blue);
+pros::Motor sorting_motor(14, pros::v5::MotorGears::blue);
 // sorting motor
 pros::Motor intake_motor(9, pros::v5::MotorGears::blue);
+pros::Motor test(2);
 // intake motor
 //optical
-pros::Optical optical(7);
+pros::Optical optical(10);
 // imu
-pros::Imu imu(10);
+pros::Imu imu(11);
 // horizontal tracking wheel encoder
 pros::Rotation horizontal_encoder(20);
 // vertical tracking wheel encoder
-pros::adi::Encoder vertical_encoder('C', 'D', true);
+pros::Rotation vertical_encoder(19);
 // horizontal tracking wheel
 lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, lemlib::Omniwheel::NEW_275, -5.75);
 // vertical tracking wheel
@@ -165,30 +167,48 @@ void opcontrol() {
         // get left y and right x positions
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+        bool roof = false;
+        optical.set_led_pwm(100);
+        controller.print(0, 0, "%f", optical.get_hue());
         
         // move the robot
-        chassis.arcade(leftY, rightX);
+        chassis.arcade(-leftY, rightX);
         
         if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-            intake_motor.move(127);
+            intake_motor.move(-127);
                 if (optical.get_hue() > 80 && optical.get_hue() < 220) {
-                    controller.clear();
                     controller.print(0, 0, "blue");
                     sorting_motor.move(127);
+                    pros::delay(100);
+                    intake_motor.move(0);
+                    pros::delay(500);
                 }
                 else {
-                    controller.clear();
                     controller.print(0, 0, "%f", optical.get_hue());
                     controller.rumble("...");
                     sorting_motor.move(-127);
                 }
         } else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-            intake_motor.move(-127);
+            intake_motor.move(127);
+            sorting_motor.move(-127);
         } else {
             intake_motor.move(0);
             sorting_motor.move(0);
         }   
-        
+
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
+            if (roof == false) {
+                open_roof.set_value(true);
+                close_roof.set_value(false);
+            } else {
+                open_roof.set_value(false);
+                close_roof.set_value(true);
+            }
+            roof = !roof;
+            pros::delay(500);
+            
+        }
+
 
         if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
             intake_motor.move(-127);
