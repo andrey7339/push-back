@@ -2,11 +2,16 @@
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "pros/abstract_motor.hpp"
 #include "pros/adi.hpp"
+#include "pros/colors.h"
 #include "pros/misc.h"
 #include "pros/motor_group.hpp"
 #include "pros/motors.h"
 #include "pros/motors.hpp"
+#include "pros/screen.h"
+#include "pros/screen.hpp"
 #include <cstdio>
+#include <atomic>
+
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // left motor group
 pros::MotorGroup left_motor_group({1, -2, 3}, pros::MotorGears::blue);
@@ -93,14 +98,55 @@ sensors,
 &throttle_curve, 
 &steer_curve
 );
+std::atomic<int> g_pressed_rect{0};
 
+void selector() {
+    pros::screen_touch_status_s_t status = pros::screen::touch_status();
+    int x = status.x;
+    int y = status.y;
+    pros::screen::set_pen(pros::c::COLOR_RED);
+    pros::screen::fill_rect(0, 0, 100, 100);
+    pros::screen::fill_rect(110, 0, 210, 100);
+    pros::screen::set_pen(pros::c::COLOR_BLUE);
+    pros::screen::fill_rect(0, 110, 100, 210);
+    pros::screen::fill_rect(110, 110, 210, 210);
+    if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+        g_pressed_rect.store(1); //red left
+    } else if (x >= 110 && x <= 210 && y >= 0 && y <= 100) {
+        g_pressed_rect.store(2); //red right
+    } else if (x >= 0 && x <= 100 && y >= 110 && y <= 210) {
+        g_pressed_rect.store(3); //blue left
+    } else if (x >= 110 && x <= 210 && y >= 110 && y <= 210) {
+        g_pressed_rect.store(4); //blue right
+    } else {
+        g_pressed_rect.store(0);
+    }
+    if (status.touch_status != TOUCH_PRESSED) {
+        return;
+    }
+}
+void debug() {
+    while (true) {
+        optical.set_led_pwm(100);
+        printf("Optical Hue: %f\n", optical.get_hue());
+        printf("Intake Temp: %f\n", intake_motor.get_temperature());
+        printf("Drivetrain Temp: %f\n", (left_motor_group.get_temperature() + right_motor_group.get_temperature()) / 2);
+        pros::delay(500);
+    }
+}
 // initialize function. Runs on program startup
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
-    chassis.calibrate(); // calibrate sensors
+    chassis.calibrate(); // calibrate sensors  
+    pros::Task debugging_task(debug, "debuging");
     // print position to brain screen
     pros::Task screen_task([&]() {
-        while (true) {
+        while (true){
+            selector(); 
+            pros::delay(25);
+        }
+        
+        while (true) {  
             // print robot location to the brain screen
             pros::lcd::print(4, "Optical Hue: %f", optical.get_hue()); // x
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
@@ -119,7 +165,9 @@ void initialize() {
  * the VEX Competition Switch, following either autonomous or opcontrol. When
  * the robot is enabled, this task will exit.
  */
-void disabled() {}
+void disabled() {
+    
+}
 
 /**
  * Runs after initialize(), and before autonomous when connected to the Field
@@ -130,7 +178,12 @@ void disabled() {}
  * This task will exit when the robot is enabled and autonomous or opcontrol
  * starts.
  */
-void competition_initialize() {}
+void competition_initialize() {
+    while (true){
+            selector(); 
+            pros::delay(25);
+        }
+}
 
 /**
  * Runs the user autonomous code. This function will be started in its own task
@@ -145,8 +198,9 @@ void competition_initialize() {}
  */
 void autonomous() 
 {
-    chassis.setPose(lemlib::Pose(-50, -40, 90));
-    chassis.moveToPoint(10, 10, 4000);
+    chassis.setPose(0, 0, 0);
+    // turn to face heading 90 with a very long timeout
+    chassis.turnToHeading(90, 100000);
 }
 
 /**
@@ -168,52 +222,77 @@ void opcontrol() {
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
         bool roof = false;
+        int r = g_pressed_rect.load();
         optical.set_led_pwm(100);
-        controller.print(0, 0, "%f", optical.get_hue());
-        
+        controller.print(1, 0, "Int Temp: %f", left_motor_group.get_temperature());
         // move the robot
-        chassis.arcade(-leftY, rightX);
+        chassis.arcade(-leftY, -rightX);
         
         if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-            intake_motor.move(-127);
-                if (optical.get_hue() > 80 && optical.get_hue() < 220) {
-                    controller.print(0, 0, "blue");
+            if (r == 1 || r  == 2) { // red team
+                if (optical.get_hue() > 65 && optical.get_hue() < 222) {
+                    controller.set_text(0, 0, "blue");
                     sorting_motor.move(127);
-                    pros::delay(100);
+                    intake_motor.move(-90);
+                    pros::delay(600);
+                }
+                else if (optical.get_hue() >= 11 && optical.get_hue() <= 30) {
+                    controller.set_text(0, 0, "red");
+                    sorting_motor.move(-127);;
+                    intake_motor.move(-90);
+                    pros::delay(300);
                     intake_motor.move(0);
-                    pros::delay(500);
                 }
                 else {
-                    controller.print(0, 0, "%f", optical.get_hue());
-                    controller.rumble("...");
-                    sorting_motor.move(-127);
-                }
-        } else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-            intake_motor.move(127);
-            sorting_motor.move(-127);
-        } else {
-            intake_motor.move(0);
-            sorting_motor.move(0);
-        }   
-
-        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
-            if (roof == false) {
-                open_roof.set_value(true);
-                close_roof.set_value(false);
-            } else {
-                open_roof.set_value(false);
-                close_roof.set_value(true);
+                    //sorting_motor.move(-127);
+                    intake_motor.move(-127);
+                } 
             }
-            roof = !roof;
-            pros::delay(500);
-            
+            else if (r == 3 || r == 4) { // blue team - perform the same actions as the previous block but targeted at red
+                    if (optical.get_hue() >= 11 && optical.get_hue() <= 30) {
+                        controller.set_text(0, 0, "red");
+                        sorting_motor.move(127);
+                        intake_motor.move(-90);
+                        pros::delay(500);
+                    }
+                    else if (optical.get_hue() >= 65 && optical.get_hue() <= 222) {
+                        controller.set_text(0, 0, "blue");
+                        sorting_motor.move(-127);
+                        intake_motor.move(-90);
+                    }
+                    else {
+                        //sorting_motor.move(-127);
+                        intake_motor.move(-127);
+                    }
+            }
+        } // end of L1 code
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+            intake_motor.move(127);
+            sorting_motor.move(127);
         }
-
-
-        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-            intake_motor.move(-127);
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
+            sorting_motor.move(127);
+        } 
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
+            sorting_motor.move(-127);
+        }
+        else {
+                if (!controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2) 
+                && !controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1) 
+                && !controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) 
+                {
+                    intake_motor.move(0);
+                    sorting_motor.move(0);
+                }
+            }
+        if (left_motor_group.get_temperature() > 50 || intake_motor.get_temperature() > 50) {
+            controller.clear();
+            controller.rumble(".-");
+            pros::delay(100);
+            controller.set_text(1, 0, "Overheat!");
         }
         // delay to save resources
         pros::delay(25);
     }
 }
+
