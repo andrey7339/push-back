@@ -27,7 +27,6 @@ lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
                               2 // horizontal drift is 2 (for now)
 );
 pros::adi::DigitalOut open_roof('A');
-pros::adi::DigitalOut close_roof('B');
 pros::Motor sorting_motor(14, pros::v5::MotorGears::blue);
 // sorting motor
 pros::Motor intake_motor(9, pros::v5::MotorGears::blue);
@@ -67,13 +66,13 @@ lemlib::ControllerSettings lateral_controller(10, // proportional gain (kP)
 );
 
 // angular PID controller
-lemlib::ControllerSettings angular_controller(2, // proportional gain (kP)
+lemlib::ControllerSettings angular_controller(10    , // proportional gain (kP)
                                               0, // integral gain (kI)
-                                              10, // derivative gain (kD)
+                                              200, // derivative gain (kD)
                                               3, // anti windup
                                               1, // small error range, in degrees
                                               100, // small error range timeout, in milliseconds
-                                              3, // large error range, in degrees
+                                            3 , // large error range, in degrees
                                               500, // large error range timeout, in milliseconds
                                               0 // maximum acceleration (slew)
 );
@@ -197,11 +196,10 @@ void competition_initialize() {
  * from where it left off.
  */
 void autonomous() 
-{
-    chassis.setPose(0, 0, 0);
-    // turn to face heading 90 with a very long timeout
-    chassis.turnToHeading(90, 100000);
-}
+{   
+    //chassis.setPose(0, 0, 0);
+    //chassis.turnToHeading(90, 100000);
+}   
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -290,6 +288,12 @@ void opcontrol() {
             controller.rumble(".-");
             pros::delay(100);
             controller.set_text(1, 0, "Overheat!");
+        }
+        if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP)){
+            open_roof.set_value(1);
+        }
+        else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)){
+            open_roof.set_value(0);
         }
         // delay to save resources
         pros::delay(25);
