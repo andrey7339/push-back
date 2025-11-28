@@ -27,7 +27,7 @@ lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
                               2 // horizontal drift is 2 (for now)
 );
 pros::adi::DigitalOut open_roof('A');
-pros::Motor sorting_motor(14, pros::v5::MotorGears::blue);
+pros::Motor secondary_motor(14, pros::v5::MotorGears::blue);
 // sorting motor
 pros::Motor intake_motor(9, pros::v5::MotorGears::blue);
 pros::Motor test(2);
@@ -227,60 +227,19 @@ void opcontrol() {
         chassis.arcade(-leftY, -rightX);
         
         if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-            if (r == 1 || r  == 2) { // red team
-                if (optical.get_hue() > 65 && optical.get_hue() < 222) {
-                    controller.set_text(0, 0, "blue");
-                    sorting_motor.move(127);
-                    intake_motor.move(-90);
-                    pros::delay(600);
-                }
-                else if (optical.get_hue() >= 11 && optical.get_hue() <= 30) {
-                    controller.set_text(0, 0, "red");
-                    sorting_motor.move(-127);;
-                    intake_motor.move(-90);
-                    pros::delay(300);
-                    intake_motor.move(0);
-                }
-                else {
-                    //sorting_motor.move(-127);
-                    intake_motor.move(-127);
-                } 
-            }
-            else if (r == 3 || r == 4) { // blue team - perform the same actions as the previous block but targeted at red
-                    if (optical.get_hue() >= 11 && optical.get_hue() <= 30) {
-                        controller.set_text(0, 0, "red");
-                        sorting_motor.move(127);
-                        intake_motor.move(-90);
-                        pros::delay(500);
-                    }
-                    else if (optical.get_hue() >= 65 && optical.get_hue() <= 222) {
-                        controller.set_text(0, 0, "blue");
-                        sorting_motor.move(-127);
-                        intake_motor.move(-90);
-                    }
-                    else {
-                        //sorting_motor.move(-127);
-                        intake_motor.move(-127);
-                    }
-            }
-        } // end of L1 code
-        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-            intake_motor.move(127);
-            sorting_motor.move(127);
+            intake_motor.move(-127);
+            secondary_motor.move(-127);
         }
-        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
-            sorting_motor.move(127);
-        } 
-        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
-            sorting_motor.move(-127);
+        else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+            intake_motor.move(127);
+            secondary_motor.move(127);
         }
         else {
                 if (!controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2) 
-                && !controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1) 
-                && !controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) 
+                && !controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) 
                 {
                     intake_motor.move(0);
-                    sorting_motor.move(0);
+                    secondary_motor.move(0);
                 }
             }
         if (left_motor_group.get_temperature() > 50 || intake_motor.get_temperature() > 50) {
