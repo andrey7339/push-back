@@ -171,19 +171,21 @@ void initialize() {
             selector(); 
             pros::delay(20);
         }
-        
-/*         while (true) {  
+         
+    });
+     pros::Task screen_task2([&]() {    
+        while (true) {  
             // print robot location to the brain screen
-            pros::lcd::print(4, "Optical Hue: %f", optical.get_hue()); // x
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
+            pros::lcd::print(3, "Intake Temp: %f", intakeMotor.get_temperature());
+            pros::lcd::print(4, "Outtake Temp: %f", outTakeMotor.get_temperature());
         // print measurements from the rotation sensor
-            pros::lcd::print(3, "Rotation Sensor: %i", optical.get_hue());
             // delay to save resources
             pros::delay(20);
-        } */
-    });
+        }
+     });
 }
 
 /**
@@ -222,11 +224,11 @@ void competition_initialize() {
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
- ASSET(testpath);
+ASSET(testpath_txt);
 void autonomous() 
 {   
     intakeMotor.move(127);
-    chassis.follow(testpath, 15, 2000);
+    chassis.follow(testpath_txt, 15, 2000);
     outTakeMotor.move(127);
 }   
 
