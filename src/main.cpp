@@ -15,9 +15,12 @@ bool logTemp = false;
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
+// assets / file
+ASSET(testpath_txt);
+
 // motors
-pros::MotorGroup leftDriveMotors({1, -2, 3}, pros::MotorGears::blue);
-pros::MotorGroup rightDriveMotors({-6, 7, -8}, pros::MotorGears::blue);
+pros::MotorGroup left_drive_motors({1, -2, 3}, pros::MotorGears::blue);
+pros::MotorGroup right_drive_motors({-6, 7, -8}, pros::MotorGears::blue);
 pros::Motor outTakeMotor(14, pros::v5::MotorGears::blue);
 pros::Motor intakeMotor(9, pros::v5::MotorGears::blue);
 pros::adi::DigitalOut open_roof('A');
@@ -33,8 +36,8 @@ lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, lemlib::Omn
 lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, lemlib::Omniwheel::NEW_275, -2.5);
 
 // drivetrain settings
-lemlib::Drivetrain drivetrain(&leftDriveMotors, // left motor group
-                              &rightDriveMotors, // right motor group
+lemlib::Drivetrain drivetrain(&left_drive_motors, // left motor group
+                              &right_drive_motors, // right motor group
                               10, // 10 inch track width
                               lemlib::Omniwheel::NEW_4, // using new 4" omnis
                               600, // drivetrain rpm is 600
@@ -95,7 +98,7 @@ lemlib::Chassis chassis(drivetrain,
 );
 
 // setup & initilization
-void variableInit()
+void variable_init()
 {
     pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
@@ -106,8 +109,8 @@ void selector() {
     // UI Interface for choosing autonomous routines.
 
     pros::screen_touch_status_s_t status = pros::screen::touch_status();
-    int pressedX = status.x;
-    int pressedY = status.y;
+    int x = status.x;
+    int y = status.y;
 
     // Draw objects to brain
     pros::screen::erase(); // removes frame smearing (vhs effect)
@@ -121,27 +124,27 @@ void selector() {
     // Button checks to detect autonomous selection (what the player wants)
     if (status.press_count > 2)
     {
-        if (pressedX >= 0 && pressedX <= 100 && pressedY >= 0 && pressedY <= 100) {
+        if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
             pros::delay(300);
         } 
-        else if (pressedX >= 110 && pressedX <= 210 && pressedY >= 0 && pressedY <= 100) 
+        else if (x >= 110 && x <= 210 && y >= 0 && y <= 100) 
         {
             pros::delay(300);
         }
-        else if (pressedX >= 0 && pressedX <= 100 && pressedY >= 110 && pressedY <= 210) 
+        else if (x >= 0 && x <= 100 && y >= 110 && y <= 210) 
         {
             pros::delay(300);
         } 
-        else if (pressedX >= 110 && pressedX <= 210 && pressedY >= 110 && pressedY <= 210) {
+        else if (x >= 110 && x <= 210 && y >= 110 && y <= 210) {
             pros::delay(300);
         } 
         else {
-            leftDriveMotors.move(127);
-            rightDriveMotors.move(127);
+            left_drive_motors.move(127);
+            right_drive_motors.move(127);
 
             pros::delay(200);
-            leftDriveMotors.move(0);
-            rightDriveMotors.move(0);
+            left_drive_motors.move(0);
+            right_drive_motors.move(0);
         }
         if (status.touch_status != TOUCH_PRESSED) {
             return;
@@ -155,14 +158,14 @@ void debug() {
         {
             printf("Optical Hue: %f\n", optical.get_hue());
             printf("Intake Temp: %f\n", intakeMotor.get_temperature());
-            printf("Drivetrain Temp: %f\n", (leftDriveMotors.get_temperature() + rightDriveMotors.get_temperature()) / 2);
+            printf("Drivetrain Temp: %f\n", (left_drive_motors.get_temperature() + right_drive_motors.get_temperature()) / 2);
             pros::delay(500);
         }
     }
 }
 // initialize function. Runs on program startup
 void initialize() {
-    variableInit();
+    variable_init();
     pros::Task debugging_task(debug, "debuging");
     
     // run autonomous selector
@@ -171,19 +174,21 @@ void initialize() {
             selector(); 
             pros::delay(20);
         }
-        
-/*         while (true) {  
+         
+    });
+     pros::Task screen_task2([&]() {    
+        while (true) {  
             // print robot location to the brain screen
-            pros::lcd::print(4, "Optical Hue: %f", optical.get_hue()); // x
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
+            pros::lcd::print(3, "Intake Temp: %f", intakeMotor.get_temperature());
+            pros::lcd::print(4, "Outtake Temp: %f", outTakeMotor.get_temperature());
         // print measurements from the rotation sensor
-            pros::lcd::print(3, "Rotation Sensor: %i", optical.get_hue());
             // delay to save resources
             pros::delay(20);
-        } */
-    });
+        }
+     });
 }
 
 /**
@@ -222,11 +227,10 @@ void competition_initialize() {
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
- ASSET(testpath);
 void autonomous() 
 {   
     intakeMotor.move(127);
-    chassis.follow(testpath, 15, 2000);
+    chassis.follow(testpath_txt, 15, 2000);
     outTakeMotor.move(127);
 }   
 
@@ -280,7 +284,7 @@ void opcontrol() {
         
         if (logTemp)
         {
-            if (leftDriveMotors.get_temperature() > 50 || intakeMotor.get_temperature() > 50) {
+            if (left_drive_motors.get_temperature() > 50 || intakeMotor.get_temperature() > 50) {
                 controller.clear();
                 controller.rumble(".-");
                 controller.set_text(1, 0, "Overheat!");
@@ -297,4 +301,3 @@ void opcontrol() {
         pros::delay(20);
     }
 }
-

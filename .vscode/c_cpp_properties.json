@@ -7,14 +7,15 @@
         "/Users/andrey/Documents/pls work/include",
         "/Users/andrey/Documents/push-back/include",
         "/Users/andrey/Documents/GitHub/push-back/include",
-        "c:\\Users\\Andrey\\Documents\\GitHub\\push-back\\include"
+        "c:\\Users\\Andrey\\Documents\\GitHub\\push-back\\include",
+        "c:\\Users\\rylyf\\OneDrive\\Desktop\\push-back\\include"
       ],
       "defines": [
         "_DEBUG",
         "UNICODE",
         "_UNICODE"
       ],
-      "compilerPath": "c:\\Users\\Andrey\\AppData\\Roaming\\Code\\User\\globalStorage\\sigbots.pros\\install\\pros-toolchain-windows\\usr\\bin\\arm-none-eabi-g++",
+      "compilerPath": "c:\\Users\\rylyf\\AppData\\Roaming\\Code\\User\\globalStorage\\sigbots.pros\\install\\pros-toolchain-windows\\usr\\bin\\arm-none-eabi-g++",
       "cStandard": "gnu11",
       "cppStandard": "gnu++20",
       "intelliSenseMode": "gcc-arm",
@@ -23,7 +24,7 @@
       ],
       "browse": {
         "path": [
-          "c:\\Users\\Andrey\\Documents\\GitHub\\push-back"
+          "c:\\Users\\rylyf\\OneDrive\\Desktop\\push-back"
         ],
         "limitSymbolsToIncludedHeaders": true,
         "databaseFilename": ""
