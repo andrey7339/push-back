@@ -126,17 +126,21 @@ void selector() {
     {
         if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
             pros::delay(300);
+            chassis.follow(testpath_txt, 15, 2000);
         } 
         else if (x >= 110 && x <= 210 && y >= 0 && y <= 100) 
         {
             pros::delay(300);
+            chassis.follow(testpath_txt, 15, 2000);
         }
         else if (x >= 0 && x <= 100 && y >= 110 && y <= 210) 
         {
             pros::delay(300);
+            chassis.follow(testpath_txt, 15, 2000);
         } 
         else if (x >= 110 && x <= 210 && y >= 110 && y <= 210) {
             pros::delay(300);
+            chassis.follow(testpath_txt, 15, 2000);
         } 
         else {
             left_drive_motors.move(127);
