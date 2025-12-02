@@ -296,6 +296,11 @@ void opcontrol() {
                 pros::delay(100);
             }
         }
+        if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
+            intakeMotor.move(64);
+            outTakeMotor.move(64);
+            pros::delay(300);
+        }
         if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP)){
             open_roof.set_value(1);
         }
