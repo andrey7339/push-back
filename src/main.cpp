@@ -251,9 +251,24 @@ void autonomous()
  * If the robot is disabled or communications is lost, the
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
+ *
  */
+
+void inform_player()
+{
+    srand(time(0));
+    int randNumber = rand() % 101;
+
+    if (randNumber <= 10)
+    {
+        controller.rumble(".---------");
+    }
+}
 void opcontrol() {
 	while (true) {
+        
+        inform_player();
+
         // get left y and right x positions
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
