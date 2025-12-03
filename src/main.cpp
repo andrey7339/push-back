@@ -32,8 +32,8 @@ pros::Optical optical(10);
 pros::Imu imu(11);
 pros::Rotation horizontal_encoder(20);
 pros::Rotation vertical_encoder(19);
-lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, lemlib::Omniwheel::NEW_275, -5.75);
-lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, lemlib::Omniwheel::NEW_275, -2.5);
+lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, lemlib::Omniwheel::NEW_275, -6);
+lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, lemlib::Omniwheel::NEW_275, 0.75);
 
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_drive_motors, // left motor group
@@ -65,14 +65,14 @@ lemlib::ControllerSettings lateral_controller(10, // proportional gain (kP)
 );
 
 // angular PID controller
-lemlib::ControllerSettings angular_controller(10    , // proportional gain (kP)
+lemlib::ControllerSettings angular_controller(15, // proportional gain (kP)
                                               0, // integral gain (kI)
-                                              200, // derivative gain (kD)
-                                              3, // anti windup
-                                              1, // small error range, in degrees
-                                              100, // small error range timeout, in milliseconds
-                                            3 , // large error range, in degrees
-                                              500, // large error range timeout, in milliseconds
+                                              150, // derivative gain (kD)
+                                              0, // anti windup
+                                              0, // small error range, in inches
+                                              0, // small error range timeout, in milliseconds
+                                              0, // large error range, in inches
+                                              0, // large error range timeout, in milliseconds
                                               0 // maximum acceleration (slew)
 );
 
@@ -183,6 +183,9 @@ void initialize() {
      pros::Task screen_task2([&]() {    
         while (true) {  
             // print robot location to the brain screen
+            controller.print(0, 0, "X: %f", chassis.getPose().x); // x
+            controller.print(1, 0, "Y: %f", chassis.getPose().y); // y
+            controller.print(2, 0, "Theta: %f", chassis.getPose().theta); // heading
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
@@ -231,12 +234,15 @@ void competition_initialize() {
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
- ASSET(testpath);
 void autonomous() 
 {   
-    intakeMotor.move(127);
-    chassis.follow(testpath_txt, 15, 2000);
-    outTakeMotor.move(127);
+    //intakeMotor.move(127);
+    //chassis.follow(testpath_txt, 15, 2000);
+    //outTakeMotor.move(127);
+    // set position to x:0, y:0, heading:0
+    chassis.setPose(0, 0, 0);
+    // turn to face heading 90 with a very long timeout
+    chassis.turnToHeading(90, 100000);
 }   
 
 /**
@@ -266,8 +272,6 @@ void inform_player()
 }
 void opcontrol() {
 	while (true) {
-        
-        inform_player();
 
         // get left y and right x positions
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
