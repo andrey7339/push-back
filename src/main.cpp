@@ -17,6 +17,8 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 // assets / file
 ASSET(testpath_txt);
+ASSET(ballerauto_txt);
+ASSET(reverseauto_txt);
 
 // motors
 pros::MotorGroup left_drive_motors({1, -2, 3}, pros::MotorGears::blue);
@@ -24,6 +26,7 @@ pros::MotorGroup right_drive_motors({-6, 7, -8}, pros::MotorGears::blue);
 pros::Motor outTakeMotor(14, pros::v5::MotorGears::blue);
 pros::Motor intakeMotor(9, pros::v5::MotorGears::blue);
 pros::adi::DigitalOut open_roof('A');
+pros::adi::DigitalOut descore_mech('B');
 
 //optical
 pros::Optical optical(10);
@@ -38,7 +41,7 @@ lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, lemlib::Omniwhe
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_drive_motors, // left motor group
                               &right_drive_motors, // right motor group
-                              10, // 10 inch track width
+                              18, // 10 inch track width
                               lemlib::Omniwheel::NEW_4, // using new 4" omnis
                               600, // drivetrain rpm is 600
                               2 // horizontal drift is 2 (for now)
@@ -52,7 +55,6 @@ lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
                             &imu // inertial sensor
 );
 
-// lateral PID controller
 lemlib::ControllerSettings lateral_controller(10, // proportional gain (kP)
                                               0, // integral gain (kI)
                                               3, // derivative gain (kD)
@@ -65,15 +67,15 @@ lemlib::ControllerSettings lateral_controller(10, // proportional gain (kP)
 );
 
 // angular PID controller
-lemlib::ControllerSettings angular_controller(15, // proportional gain (kP)
+lemlib::ControllerSettings angular_controller(2, // proportional gain (kP)
                                               0, // integral gain (kI)
-                                              150, // derivative gain (kD)
+                                              10, // derivative gain (kD)
                                               0, // anti windup
-                                              0, // small error range, in inches
-                                              0, // small error range timeout, in milliseconds
-                                              0, // large error range, in inches
-                                              0, // large error range timeout, in milliseconds
-                                              0 // maximum acceleration (slew)
+                                              1, // small error range, in inches
+                                              100, // small error range timeout, in milliseconds
+                                              3, // large error range, in inches
+                                              500, // large error range timeout, in milliseconds
+                                              20 // maximum acceleration (slew)
 );
 
 // input curve for throttle input during driver control
@@ -126,21 +128,21 @@ void selector() {
     {
         if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
             pros::delay(300);
-            chassis.follow(testpath_txt, 15, 2000);
+            chassis.follow(ballerauto_txt, 15, 2000);
         } 
         else if (x >= 110 && x <= 210 && y >= 0 && y <= 100) 
         {
             pros::delay(300);
-            chassis.follow(testpath_txt, 15, 2000);
+            chassis.follow(ballerauto_txt, 15, 2000);
         }
         else if (x >= 0 && x <= 100 && y >= 110 && y <= 210) 
         {
             pros::delay(300);
-            chassis.follow(testpath_txt, 15, 2000);
+            chassis.follow(ballerauto_txt, 15, 2000);
         } 
         else if (x >= 110 && x <= 210 && y >= 110 && y <= 210) {
             pros::delay(300);
-            chassis.follow(testpath_txt, 15, 2000);
+            chassis.follow(ballerauto_txt, 15, 2000);
         } 
         else {
             left_drive_motors.move(127);
@@ -180,7 +182,7 @@ void initialize() {
         }
          
     });
-     pros::Task screen_task2([&]() {    
+/*      pros::Task screen_task2([&]() {    
         while (true) {  
             // print robot location to the brain screen
             controller.print(0, 0, "X: %f", chassis.getPose().x); // x
@@ -195,7 +197,7 @@ void initialize() {
             // delay to save resources
             pros::delay(20);
         }
-     });
+     }); */
 }
 
 /**
@@ -234,15 +236,25 @@ void competition_initialize() {
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
+
+void template_auto()
+{
+    chassis.setPose(0, 0, 0);
+    chassis.moveToPoint(0, 10, 1000);
+}
+void parking_auto()
+{
+    chassis.setPose(0,0,0);
+    chassis.turnToHeading(90, 1000);
+    chassis.setPose(0,0,90);
+    chassis.moveToPoint(100, 0, 5000);
+}
 void autonomous() 
 {   
-    //intakeMotor.move(127);
-    //chassis.follow(testpath_txt, 15, 2000);
-    //outTakeMotor.move(127);
-    // set position to x:0, y:0, heading:0
     chassis.setPose(0, 0, 0);
-    // turn to face heading 90 with a very long timeout
-    chassis.turnToHeading(90, 100000);
+    //chassis.moveToPoint(100, 100, 50000);
+    parking_auto();
+    
 }   
 
 /**
@@ -260,16 +272,6 @@ void autonomous()
  *
  */
 
-void inform_player()
-{
-    srand(time(0));
-    int randNumber = rand() % 101;
-
-    if (randNumber <= 10)
-    {
-        controller.rumble(".---------");
-    }
-}
 void opcontrol() {
 	while (true) {
 
@@ -280,7 +282,14 @@ void opcontrol() {
     
         // move the robot
         chassis.arcade(-leftY, -rightX);
-        
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_B))
+        {
+            chassis.follow(ballerauto_txt, 3, 2000, false);
+        }
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A))
+        {
+            chassis.follow(ballerauto_txt, 3, 2000, false);
+        }
         if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             intakeMotor.move(-127);
             outTakeMotor.move(-127);
@@ -310,21 +319,21 @@ void opcontrol() {
         {
             if (left_drive_motors.get_temperature() > 50 || intakeMotor.get_temperature() > 50) {
                 controller.clear();
-                controller.rumble(".-");
                 controller.set_text(1, 0, "Overheat!");
                 pros::delay(100);
             }
         }
-        if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
-            intakeMotor.move(64);
-            outTakeMotor.move(64);
-            pros::delay(300);
-        }
-        if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP)){
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP)){
             open_roof.set_value(1);
         }
         else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)){
             open_roof.set_value(0);
+        }
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)){
+            descore_mech.set_value(1);
+        }
+        else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)){
+            descore_mech.set_value(0);
         }
         // delay to save resources
         pros::delay(20);
